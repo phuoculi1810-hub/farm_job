@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AutoJob CPanel</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+    }
+    header {
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 1.3rem; color: #58a6ff; }
+    .badge {
+      background: #238636;
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+    }
+    .badge.off { background: #6e7681; }
+    main { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      margin-bottom: 24px;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th {
+      background: #21262d;
+      padding: 10px 12px;
+      text-align: left;
+      color: #8b949e;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    td {
+      padding: 10px 12px;
+      border-top: 1px solid #21262d;
+      white-space: nowrap;
+    }
+    tr:hover td { background: #161b22; cursor: pointer; }
+    tr.selected td { background: #1f3a5f !important; }
+    .status-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+    .status-dot.on { background: #3fb950; }
+    .status-dot.off { background: #6e7681; }
+    .panel {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 20px;
+      display: none;
+    }
+    .panel.active { display: block; }
+    .panel h2 { font-size: 1.1rem; margin-bottom: 16px; color: #58a6ff; }
+    .btn-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 10px;
+    }
+    .btn {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #e6edf3;
+      padding: 10px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: background 0.15s;
+    }
+    .btn:hover { background: #30363d; }
+    .btn.danger { border-color: #f85149; color: #f85149; }
+    .btn.primary { border-color: #58a6ff; color: #58a6ff; }
+    .btn.success { border-color: #3fb950; color: #3fb950; }
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 24px;
+      width: 360px;
+    }
+    .modal h3 { margin-bottom: 16px; }
+    .modal input {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      color: #e6edf3;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      font-size: 0.9rem;
+    }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .money { color: #3fb950; }
+    .bank { color: #58a6ff; }
+    .jobid { color: #8b949e; font-family: monospace; font-size: 0.75rem; }
+    .login-overlay {
+      position: fixed; inset: 0;
+      background: #0d1117;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-overlay.hidden { display: none; }
+    .login-box {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 32px;
+      width: 400px;
+    }
+    .login-box h2 { color: #58a6ff; margin-bottom: 8px; }
+    .login-box p { color: #8b949e; font-size: 0.85rem; margin-bottom: 20px; }
+    .login-box input {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      color: #e6edf3;
+      padding: 10px 14px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      font-size: 0.9rem;
+      font-family: monospace;
+    }
+    .login-error { color: #f85149; font-size: 0.85rem; margin-bottom: 12px; display: none; }
+    .header-actions { display: flex; gap: 10px; align-items: center; }
+    .btn-logout {
+      background: transparent;
+      border: 1px solid #30363d;
+      color: #8b949e;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.75rem;
+    }
+    .btn-logout:hover { color: #f85149; border-color: #f85149; }
+  </style>
+</head>
+<body>
+  <!-- Login -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-box">
+      <h2>AutoJob CPanel</h2>
+      <p>Nhập API Key để truy cập dashboard. Key này giống với key cấu hình trên Railway và trong script Roblox.</p>
+      <div class="login-error" id="loginError">API Key không hợp lệ</div>
+      <input type="password" id="loginApiKey" placeholder="Nhập API Key..." />
+      <button class="btn primary" style="width:100%" onclick="doLogin()">Đăng nhập</button>
+    </div>
+  </div>
+  <header>
+    <h1>AutoJob CPanel Dashboard</h1>
+    <div class="header-actions">
+      <span class="badge" id="wsStatus">Connecting...</span>
+      <button class="btn-logout" onclick="doLogout()">Đăng xuất</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Account</th>
+            <th>Trạng thái</th>
+            <th>Tiền mặt</th>
+            <th>Bank</th>
+            <th>Thời gian server</th>
+            <th>Số người</th>
+            <th>JobId</th>
+            <th>HP</th>
+          </tr>
+        </thead>
+        <tbody id="accountTable"></tbody>
+      </table>
+    </div>
+
+    <div class="panel" id="controlPanel">
+      <h2 id="panelTitle">Controls</h2>
+      <div class="btn-grid">
+        <button class="btn primary" onclick="sendCmd('hop')">HOP Server</button>
+        <button class="btn danger" onclick="sendCmd('stop_autojob')">Stop AutoJob</button>
+        <button class="btn" onclick="sendCmd('go_bank')">Đến Bank</button>
+        <button class="btn" onclick="sendCmd('go_job')">Đến Job</button>
+        <button class="btn" onclick="openStudsModal()">Check Player Studs</button>
+        <button class="btn" onclick="openMoneyModal()">Send Money</button>
+        <button class="btn success" onclick="sendCmd('start_autojob')">Auto Job</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Studs Modal -->
+  <div class="modal-overlay" id="studsModal">
+    <div class="modal">
+      <h3>Check Player Studs</h3>
+      <p style="color:#8b949e;font-size:0.85rem;margin-bottom:12px">
+        Tọa độ: -1736.301, 4.127, -1589.155
+      </p>
+      <input type="number" id="studsRadius" placeholder="Nhập bán kính (ví dụ: 20)" value="20" />
+      <div class="modal-actions">
+        <button class="btn" onclick="closeStudsModal()">Hủy</button>
+        <button class="btn primary" onclick="confirmStuds()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Send Money Modal -->
+  <div class="modal-overlay" id="moneyModal">
+    <div class="modal">
+      <h3>Send Money</h3>
+      <input type="text" id="moneyUsername" placeholder="Username player" />
+      <input type="number" id="moneyAmount" placeholder="Số tiền" />
+      <div class="modal-actions">
+        <button class="btn" onclick="closeMoneyModal()">Hủy</button>
+        <button class="btn primary" onclick="confirmMoney()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_KEY_STORAGE = "autojob_api_key";
+    let selectedAccount = null;
+    let accounts = [];
+    let ws = null;
+    let apiKey = localStorage.getItem(API_KEY_STORAGE) || "";
+
+    function getHeaders() {
+      return {
+        "Content-Type": "application/json",
+        "X-API-Key": apiKey,
+      };
+    }
+
+    async function doLogin() {
+      const key = document.getElementById("loginApiKey").value.trim();
+      if (!key) return;
+      apiKey = key;
+
+      try {
+        const res = await fetch("/api/accounts", { headers: getHeaders() });
+        if (res.status === 401 || res.status === 503) {
+          document.getElementById("loginError").style.display = "block";
+          apiKey = "";
+          return;
+        }
+        localStorage.setItem(API_KEY_STORAGE, apiKey);
+        document.getElementById("loginOverlay").classList.add("hidden");
+        document.getElementById("loginError").style.display = "none";
+        initApp();
+      } catch {
+        document.getElementById("loginError").textContent = "Không kết nối được server";
+        document.getElementById("loginError").style.display = "block";
+      }
+    }
+
+    function doLogout() {
+      localStorage.removeItem(API_KEY_STORAGE);
+      apiKey = "";
+      if (ws) ws.close();
+      location.reload();
+    }
+
+    function connectWS() {
+      const proto = location.protocol === "https:" ? "wss:" : "ws:";
+      ws = new WebSocket(`${proto}//${location.host}?apiKey=${encodeURIComponent(apiKey)}`);
+
+      ws.onopen = () => {
+        document.getElementById("wsStatus").textContent = "Realtime";
+        document.getElementById("wsStatus").classList.remove("off");
+      };
+
+      ws.onclose = (e) => {
+        document.getElementById("wsStatus").textContent = "Disconnected";
+        document.getElementById("wsStatus").classList.add("off");
+        if (e.code === 4001) {
+          doLogout();
+          return;
+        }
+        setTimeout(connectWS, 3000);
+      };
+
+      ws.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        if (msg.type === "accounts_update") {
+          accounts = msg.accounts;
+          renderTable();
+        }
+      };
+    }
+
+    function initApp() {
+      connectWS();
+      fetch("/api/accounts", { headers: getHeaders() })
+        .then(r => r.json())
+        .then(data => { accounts = data; renderTable(); });
+    }
+
+    document.getElementById("loginApiKey").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") doLogin();
+    });
+
+    if (apiKey) {
+      fetch("/api/accounts", { headers: getHeaders() })
+        .then(res => {
+          if (res.ok) {
+            document.getElementById("loginOverlay").classList.add("hidden");
+            initApp();
+          } else {
+            localStorage.removeItem(API_KEY_STORAGE);
+            apiKey = "";
+          }
+        })
+        .catch(() => {});
+    }
+
+    function fmt(n) {
+      return Number(n || 0).toLocaleString("vi-VN");
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById("accountTable");
+      tbody.innerHTML = accounts.map((a) => `
+        <tr class="${selectedAccount === a.username ? "selected" : ""}"
+            onclick="selectAccount('${a.username}')">
+          <td>
+            <span class="status-dot ${a.online ? "on" : "off"}"></span>
+            ${a.username}
+          </td>
+          <td>${a.status || "—"}</td>
+          <td class="money">${fmt(a.cash)}</td>
+          <td class="bank">${fmt(a.bank)}</td>
+          <td>${a.serverTime || "—"}</td>
+          <td>${a.playerCount || "—"}</td>
+          <td class="jobid">${(a.jobId || "").substring(0, 12)}...</td>
+          <td>${Math.floor(a.hp || 0)}</td>
+        </tr>
+      `).join("");
+    }
+
+    function selectAccount(username) {
+      selectedAccount = username;
+      document.getElementById("controlPanel").classList.add("active");
+      document.getElementById("panelTitle").textContent = `Controls — ${username}`;
+      renderTable();
+    }
+
+    async function sendCmd(action, params = {}) {
+      if (!selectedAccount) return alert("Chọn account trước!");
+      const res = await fetch(`/api/accounts/${selectedAccount}/command`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({ action, params }),
+      });
+      if (res.status === 401) { doLogout(); return; }
+      const data = await res.json();
+      if (!data.ok) alert("Lỗi: " + (data.error || "unknown"));
+    }
+
+    function openStudsModal() {
+      if (!selectedAccount) return alert("Chọn account trước!");
+      document.getElementById("studsModal").classList.add("show");
+    }
+    function closeStudsModal() {
+      document.getElementById("studsModal").classList.remove("show");
+    }
+    function confirmStuds() {
+      const radius = document.getElementById("studsRadius").value;
+      sendCmd("check_studs", { radius: Number(radius) });
+      closeStudsModal();
+    }
+
+    function openMoneyModal() {
+      if (!selectedAccount) return alert("Chọn account trước!");
+      document.getElementById("moneyModal").classList.add("show");
+    }
+    function closeMoneyModal() {
+      document.getElementById("moneyModal").classList.remove("show");
+    }
+    function confirmMoney() {
+      const username = document.getElementById("moneyUsername").value;
+      const amount = document.getElementById("moneyAmount").value;
+      if (!username || !amount) return alert("Nhập đủ thông tin!");
+      sendCmd("send_money", { username, amount });
+      closeMoneyModal();
+    }
+  </script>
+</body>
+</html>
