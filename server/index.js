@@ -192,11 +192,25 @@ app.post("/api/accounts/:username/command", async (req, res) => {
   if (!action) return res.status(400).json({ error: "action required" });
 
   const validActions = [
-    "hop", "stop_autojob", "go_bank", "go_job",
-    "check_studs", "send_money", "start_autojob",
+    "hop", "hop_jobid", "stop_autojob", "go_bank", "go_job",
+    "check_studs", "send_money", "start_autojob", "deposit",
   ];
   if (!validActions.includes(action)) {
     return res.status(400).json({ error: "invalid action" });
+  }
+
+  if (action === "deposit") {
+    const amount = Number(params && params.amount);
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: "amount không hợp lệ" });
+    }
+  }
+
+  if (action === "hop_jobid") {
+    const jobId = params && params.jobId;
+    if (!jobId || typeof jobId !== "string" || !jobId.trim()) {
+      return res.status(400).json({ error: "jobId không hợp lệ" });
+    }
   }
 
   const acc = getAccount(username);
@@ -236,6 +250,8 @@ app.post("/api/accounts/:username/command", async (req, res) => {
   if (action === "check_studs") acc.status = "Đang check player studs";
   if (action === "send_money") acc.status = "Đang chuyển tiền";
   if (action === "start_autojob") acc.status = "Bật auto job";
+  if (action === "deposit") acc.status = `Đang nạp ${params.amount} vào bank`;
+  if (action === "hop_jobid") acc.status = `Đang hop đến JobId ${params.jobId}`;
 
   const queue = commandQueues.get(username) || [];
   queue.push(cmd);
