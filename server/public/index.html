@@ -204,11 +204,13 @@
       <h2 id="panelTitle">Controls</h2>
       <div class="btn-grid">
         <button class="btn primary" onclick="sendCmd('hop')">HOP Server</button>
+        <button class="btn primary" onclick="openHopJobIdModal()">HOP theo JobId</button>
         <button class="btn danger" onclick="sendCmd('stop_autojob')">Stop AutoJob</button>
         <button class="btn" onclick="sendCmd('go_bank')">Đến Bank</button>
         <button class="btn" onclick="sendCmd('go_job')">Đến Job</button>
         <button class="btn" onclick="openStudsModal()">Check Player Studs</button>
         <button class="btn" onclick="openMoneyModal()">Send Money</button>
+        <button class="btn" onclick="openDepositModal()">Deposit</button>
         <button class="btn success" onclick="sendCmd('start_autojob')">Auto Job</button>
       </div>
     </div>
@@ -238,6 +240,30 @@
       <div class="modal-actions">
         <button class="btn" onclick="closeMoneyModal()">Hủy</button>
         <button class="btn primary" onclick="confirmMoney()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deposit Modal -->
+  <div class="modal-overlay" id="depositModal">
+    <div class="modal">
+      <h3>Deposit vào Bank</h3>
+      <input type="number" id="depositAmount" placeholder="Nhập số tiền muốn nạp" />
+      <div class="modal-actions">
+        <button class="btn" onclick="closeDepositModal()">Hủy</button>
+        <button class="btn primary" onclick="confirmDeposit()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hop JobId Modal -->
+  <div class="modal-overlay" id="hopJobIdModal">
+    <div class="modal">
+      <h3>Hop Server theo JobId</h3>
+      <input type="text" id="hopJobIdInput" placeholder="Nhập JobId (ví dụ: 3b034e08-1c7...)" />
+      <div class="modal-actions">
+        <button class="btn" onclick="closeHopJobIdModal()">Hủy</button>
+        <button class="btn primary" onclick="confirmHopJobId()">OK</button>
       </div>
     </div>
   </div>
@@ -407,6 +433,34 @@
       if (!username || !amount) return alert("Nhập đủ thông tin!");
       sendCmd("send_money", { username, amount });
       closeMoneyModal();
+    }
+
+    function openDepositModal() {
+      if (!selectedAccount) return alert("Chọn account trước!");
+      document.getElementById("depositModal").classList.add("show");
+    }
+    function closeDepositModal() {
+      document.getElementById("depositModal").classList.remove("show");
+    }
+    function confirmDeposit() {
+      const amount = Number(document.getElementById("depositAmount").value);
+      if (!amount || amount <= 0) return alert("Nhập số tiền hợp lệ!");
+      sendCmd("deposit", { amount });
+      closeDepositModal();
+    }
+
+    function openHopJobIdModal() {
+      if (!selectedAccount) return alert("Chọn account trước!");
+      document.getElementById("hopJobIdModal").classList.add("show");
+    }
+    function closeHopJobIdModal() {
+      document.getElementById("hopJobIdModal").classList.remove("show");
+    }
+    function confirmHopJobId() {
+      const jobId = document.getElementById("hopJobIdInput").value.trim();
+      if (!jobId) return alert("Nhập JobId!");
+      sendCmd("hop_jobid", { jobId });
+      closeHopJobIdModal();
     }
   </script>
 </body>
